@@ -6,7 +6,7 @@ A FastAPI service that parses and evaluates student answer sheets using the Gemi
 
 # Prerequisites
 
-Before running the API, ensure the following are installed:
+Before running the API, ensure the following are installed / obtained:
 
 * Python 3.12 or later
 * Git
@@ -52,29 +52,34 @@ pip install -r requirements.txt
 
 # Configure the Gemini API Key
 
-The application expects the Gemini API key to be available as the following environment variable:
+The application loads environment variables from a local `.env` file.
 
-```text
-GEMINI_API_KEY
-```
-
-Verify that the variable is available before starting the server.
+1. Copy the example environment file:
 
 ### Linux / macOS
-
 ```bash
-echo $GEMINI_API_KEY
+cp .env.example .env
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-echo $env:GEMINI_API_KEY
+Copy-Item .env.example .env
 ```
 
-If the command prints your API key, the environment variable has been configured correctly.
+2. Open the newly created `.env` file and replace the placeholder value with your Gemini API key:
 
----
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+3. Save the file and start the application.
+
+> **Note**
+>
+> * Do **not** commit your `.env` file to version control.
+> * The `.env.example` file serves as a template and should be committed to the repository, while the actual `.env` file should remain local.
+
 
 # Run the Development Server
 
@@ -127,7 +132,7 @@ Send a `multipart/form-data` request containing:
 
 Returns a JSON object containing the AI-generated evaluation of the submitted answer sheet.
  
-More detailed documentations [here](#answer-sheet-json-response-schema)
+More detailed documentations [here](#api-response-format)
 
 ---
 
