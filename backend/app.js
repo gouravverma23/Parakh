@@ -5,6 +5,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 
 const examRoutes = require("./routes/examRoutes");
+const evaluationRoutes = require("./routes/evaluationRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/exams", examRoutes);
+app.use("/api/evaluations", evaluationRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -9,11 +9,17 @@ const examService = require("../services/examService");
  * 3. Returns success with parsed data (no database write here)
  */
 const uploadPaper = async (req, res, next) => {
+  const filename = req.files && req.files[0] ? req.files[0].originalname : "unknown_paper.pdf";
+  console.log(`[Exam] >>> Incoming POST /api/exams/upload-paper. File: ${filename}`);
+
   try {
+    console.log("[Exam] => Sending question paper PDF to AI Parsing Service (QP-parsing)...");
     let parsedData;
     try {
       parsedData = await aiService.parseQuestionPaper(req.files);
+      console.log("[Exam] => Question paper successfully parsed by AI Service.");
     } catch (aiError) {
+      console.error("[Exam] [AI SERVICE ERROR] =>", aiError.message);
       const errorMessage =
         aiError.response?.data?.error ||
         aiError.message ||
@@ -23,8 +29,7 @@ const uploadPaper = async (req, res, next) => {
       throw error;
     }
 
-    const filename = req.files[0]?.originalname || "unknown_paper.pdf";
-
+    console.log(`[Exam] <<< Responding 201 Created for file: ${filename}`);
     return res.status(201).json({
       success: true,
       message: "Question paper uploaded and parsed successfully.",
@@ -32,6 +37,7 @@ const uploadPaper = async (req, res, next) => {
       questionPaper: parsedData,
     });
   } catch (error) {
+    console.error(`[Exam] [FATAL ERROR] => ${error.message}`);
     next(error);
   }
 };
@@ -44,20 +50,25 @@ const uploadPaper = async (req, res, next) => {
  * 3. Returns a success message
  */
 const generateRubric = async (req, res, next) => {
-  try {
-    const { pdf_filename, parsed_data } = req.body;
+  const { pdf_filename, parsed_data } = req.body;
+  const filename = pdf_filename || "unknown_paper.pdf";
+  
+  console.log(`[Exam] >>> Incoming POST /api/exams/generate-rubric. File: ${filename}`);
 
+  try {
     if (!parsed_data) {
+      console.warn("[Exam] Validation failed: Missing parsed_data in request body.");
       return res.status(400).json({
         success: false,
         error: "Missing parsed_data (question paper JSON) in request body.",
       });
     }
 
-    const filename = pdf_filename || "unknown_paper.pdf";
-
+    console.log("[Exam] => Storing parsed question paper and rubrics in database...");
     const result = await examService.storeExamPaper(parsed_data, filename);
+    console.log(`[Exam] => Successfully stored in DB with Record ID: ${result.id}`);
 
+    console.log(`[Exam] <<< Responding 201 Created. ID: ${result.id}`);
     return res.status(201).json({
       success: true,
       message: "Question paper and rubrics saved successfully.",
@@ -65,6 +76,7 @@ const generateRubric = async (req, res, next) => {
       createdAt: result.created_at,
     });
   } catch (error) {
+    console.error(`[Exam] [FATAL ERROR] => ${error.message}`);
     next(error);
   }
 };
