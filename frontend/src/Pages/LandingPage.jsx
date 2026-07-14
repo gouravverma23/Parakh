@@ -27,6 +27,39 @@ function LandingPage() {
     "Start Evaluation",
   ];
 
+  const contributors = [
+  {
+    name: "Aaditya Pokhriyal",
+    github: "AadityaPokhriyal",
+    role: "Team Leader & AI Services Developer & Backend Developer",
+  },
+  {
+    name: "Divyanshu Yadav",
+    github: "divyanshuyadav-dev",
+    role: "AI Services Developer (Concept Originator) & Data Standardization Lead",
+  },
+  {
+    name: "Gaurav Verma",
+    github: "gouravverma23",
+    role: "Backend & Integration Developer & Frontend Lead",
+  },
+  {
+    name: "Anshu Kumar",
+    github: "anshu-kr576",
+    role: "Frontend Developer",
+  },
+  {
+    name: "Jai Singh Rathore",
+    github: "jaisingh30-design",
+    role: "UI/UX Designer",
+  },
+  {
+    name: "Raj",
+    github: "rj-codecraft",
+    role: "UI/UX Designer",
+  },
+];
+
   return (
     <div style={styles.container}>
       {/* Hero Section */}
@@ -83,6 +116,38 @@ function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* Contributors */}
+<section style={styles.contributors}>
+  <h2 style={styles.sectionTitle}>
+    Contributors
+  </h2>
+
+  <div style={styles.contributorsGrid}>
+    {contributors.map((person, index) => (
+      <div
+        key={index}
+        style={styles.contributorCard}
+      >
+        <img
+          src={`https://github.com/${person.github}.png`}
+          alt={person.name}
+          style={styles.avatar}
+        />
+
+        <h3>{person.name}</h3>
+
+        <p style={styles.github}>
+          @{person.github}
+        </p>
+
+        <p style={styles.role}>
+          {person.role}
+        </p>
+      </div>
+    ))}
+  </div>
+</section>
 
       {/* CTA */}
       <section style={styles.cta}>
@@ -253,6 +318,49 @@ const styles = {
     marginLeft: "auto",
     marginRight: "auto",
   },
+
+  contributors: {
+  marginTop: "100px",
+  textAlign: "center",
+},
+
+contributorsGrid: {
+  maxWidth: "1000px",
+  margin: "40px auto 0",
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(280px,1fr))",
+  gap: "24px",
+},
+
+contributorCard: {
+  background: "#172033",
+  border: "1px solid #28354d",
+  borderRadius: "20px",
+  padding: "24px",
+  textAlign: "center",
+},
+
+avatar: {
+  width: "90px",
+  height: "90px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  marginBottom: "16px",
+  border: "3px solid #8b5cf6",
+},
+
+github: {
+  color: "#8b5cf6",
+  fontSize: "14px",
+  marginBottom: "12px",
+},
+
+role: {
+  color: "#94a3b8",
+  lineHeight: "1.6",
+  fontSize: "14px",
+},
 };
 
 export default LandingPage;
