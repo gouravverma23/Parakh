@@ -62,6 +62,33 @@ function LandingPage() {
 
   return (
     <div style={styles.container}>
+      {/* Header/Navbar */}
+      <header style={styles.navbar}>
+        <div style={styles.logo} onClick={() => navigate("/")}>
+          Parakh <span style={styles.gradient}>AI</span>
+        </div>
+        <button
+          style={styles.loginBtn}
+          onClick={() => navigate("/login")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#8b5cf6";
+            e.currentTarget.style.borderColor = "#8b5cf6";
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.transform = "translateY(-1px)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(139, 92, 246, 0.25)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(30, 41, 59, 0.5)";
+            e.currentTarget.style.borderColor = "#334155";
+            e.currentTarget.style.color = "#e2e8f0";
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+        >
+          Sign In
+        </button>
+      </header>
+
       {/* Hero Section */}
       <section style={styles.hero}>
         <div style={styles.badge}>AI-Powered Evaluation Platform</div>
@@ -185,14 +212,43 @@ const styles = {
     minHeight: "100vh",
     background: "#0b1120",
     color: "#fff",
-    padding: "40px 24px",
+    padding: "20px 24px 40px 24px",
+  },
+
+  navbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    maxWidth: "1200px",
+    margin: "0 auto 20px auto",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+  },
+
+  logo: {
+    fontSize: "24px",
+    fontWeight: "800",
+    letterSpacing: "-0.5px",
+    cursor: "pointer",
+  },
+
+  loginBtn: {
+    padding: "10px 20px",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    background: "rgba(30, 41, 59, 0.5)",
+    color: "#e2e8f0",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
 
   hero: {
     maxWidth: "900px",
     margin: "0 auto",
     textAlign: "center",
-    paddingTop: "80px",
+    paddingTop: "60px",
   },
 
   badge: {

@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LandingPage from "./Pages/LandingPage";
-import UploadPage from "./Pages/UploadPage";
-import ReviewPage from "./Pages/ReviewPage";
+import LandingPage from "./pages/LandingPage";
+import UploadPage from "./pages/UploadPage";
+import ReviewPage from "./pages/ReviewPage";
 import UploadAnswersPage from "./pages/UploadAnswersPage";
-import EvaluationResultsPage from "./Pages/EvaluationResultsPage";
+import EvaluationResultsPage from "./pages/EvaluationResultsPage";
+import NewLoginPage from "./pages/NewLoginPage";
 import { EvaluationProvider } from "./context/EvaluationContext";
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<NewLoginPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route
