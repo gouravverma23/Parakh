@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 const AuthContext = createContext(null);
 
@@ -81,19 +81,19 @@ export function AuthProvider({ children }) {
   /**
    * Logout and clear session.
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem("parakh_token");
     localStorage.removeItem("parakh_user");
-  };
+  }, []);
 
   /**
    * Authenticated fetch helper.
    * Automatically attaches the Bearer token to requests.
    * Handles 401 responses by logging the user out.
    */
-  const authFetch = async (url, options = {}) => {
+  const authFetch = useCallback(async (url, options = {}) => {
     const headers = {
       ...options.headers,
     };
@@ -118,7 +118,7 @@ export function AuthProvider({ children }) {
     }
 
     return res;
-  };
+  }, [token, logout]);
 
   const value = {
     user,

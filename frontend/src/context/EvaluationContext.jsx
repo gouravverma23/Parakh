@@ -91,7 +91,7 @@ export const EvaluationProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [backendBase]);
+  }, [authFetch]);
 
   const setExamInfo = useCallback(({ examPaperId: paperId, filename: fname, totalMarks: marks }) => {
     setExamPaperId((prevId) => {
