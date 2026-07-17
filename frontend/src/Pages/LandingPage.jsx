@@ -73,6 +73,7 @@ function LandingPage() {
 
   return (
     <div style={styles.container}>
+       <div style={styles.heroGlow}></div>
       <Navbar />
 
       {/* Hero Section */}
@@ -97,18 +98,22 @@ function LandingPage() {
             Upload Question Paper →
           </button>
 
-           <button
-    style={styles.secondaryBtn}
-    onClick={() => {
-      document
-        .getElementById("workflow")
-        ?.scrollIntoView({
-          behavior: "smooth",
-        });
-    }}
-  >
-    Learn More
-  </button>
+     <button
+  style={styles.secondaryBtn}
+  onClick={() => {
+    const element =
+      document.getElementById("workflow");
+
+    if (element) {
+      window.scrollTo({
+        top: element.offsetTop - 130,
+        behavior: "smooth",
+      });
+    }
+  }}
+>
+  Learn More
+</button>
         </div>
       </section>
 
@@ -221,11 +226,25 @@ function LandingPage() {
 
 const styles = {
   container: {
-    minHeight: "100vh",
-    background: "#0b1120",
-    color: "#fff",
-    padding: "20px 24px 40px 24px",
-  },
+  minHeight: "100vh",
+  background: "#0b1120",
+  color: "#fff",
+  padding: "40px 24px",
+  position: "relative",
+  overflow: "hidden",
+},
+heroGlow: {
+  position: "absolute",
+  top: "180px",
+  left: "50%",
+  transform: "translateX(-50%)",
+  width: "700px",
+  height: "350px",
+  background: "rgba(139,92,246,0.18)",
+  filter: "blur(100px)",
+  borderRadius: "50%",
+  pointerEvents: "none",
+},
 
   navbar: {
     display: "flex",
@@ -256,22 +275,33 @@ const styles = {
     transition: "all 0.2s ease",
   },
 
-  hero: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    textAlign: "center",
-    paddingTop: "60px",
-  },
+hero: {
+  maxWidth: "900px",
+  margin: "0 auto",
+  textAlign: "center",
+  minHeight: "85vh",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  position: "relative",
+  zIndex: 1,
+},
 
-  badge: {
-    display: "inline-block",
-    padding: "10px 18px",
-    borderRadius: "999px",
-    background: "rgba(139,92,246,0.15)",
-    color: "#c4b5fd",
-    marginBottom: "24px",
-    fontWeight: "500",
-  },
+badge: {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "14px 28px",
+  borderRadius: "999px",
+  background: "rgba(88, 60, 180, 0.25)",
+  border: "1px solid rgba(139,92,246,0.25)",
+  color: "#d8ccff",
+  fontWeight: "500",
+  fontSize: "18px",
+  width: "fit-content",
+  margin: "0 auto 30px",
+  backdropFilter: "blur(10px)",
+},
 
   title: {
     fontSize: "76px",
@@ -364,7 +394,7 @@ const styles = {
   },
 
   workflowSection: {
-  marginTop: "100px",
+  marginTop: "40px",
   textAlign: "center",
 },
 
