@@ -207,36 +207,6 @@ const QuestionNode = ({ question, level = 1, onUpdate }) => {
               </div>
             )}
 
-            {/* MCQ Options */}
-            {question.options && question.options.length > 0 && (
-              <div className="field-group">
-                <label>Options</label>
-                <div className="options-container">
-                  {question.options.map((opt, i) => {
-                    const optEnText = typeof opt.text === 'object' ? (opt.text?.en || '') : opt.text;
-                    const optHiText = typeof opt.text === 'object' ? (opt.text?.hi || '') : '';
-                    return (
-                      <div key={opt.optionId || i} className="option-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <div style={{ fontWeight: 600 }}>Option {opt.optionId}</div>
-                        <input
-                          type="text"
-                          value={optEnText}
-                          onChange={(e) => updateOptionText(i, 'en', e.target.value)}
-                          placeholder="Option text (EN)"
-                        />
-                        <input
-                          type="text"
-                          value={optHiText}
-                          onChange={(e) => updateOptionText(i, 'hi', e.target.value)}
-                          placeholder="Option text (HI)"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* MTF Match Data Table */}
             {hasMatchData && (
               <div className="field-group">
@@ -281,6 +251,36 @@ const QuestionNode = ({ question, level = 1, onUpdate }) => {
                       })}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* MCQ Options */}
+            {question.options && question.options.length > 0 && (
+              <div className="field-group">
+                <label>Options</label>
+                <div className="options-container">
+                  {question.options.map((opt, i) => {
+                    const optEnText = typeof opt.text === 'object' ? (opt.text?.en || '') : opt.text;
+                    const optHiText = typeof opt.text === 'object' ? (opt.text?.hi || '') : '';
+                    return (
+                      <div key={opt.optionId || i} className="option-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <div style={{ fontWeight: 600 }}>Option {opt.optionId}</div>
+                        <input
+                          type="text"
+                          value={optEnText}
+                          onChange={(e) => updateOptionText(i, 'en', e.target.value)}
+                          placeholder="Option text (EN)"
+                        />
+                        <input
+                          type="text"
+                          value={optHiText}
+                          onChange={(e) => updateOptionText(i, 'hi', e.target.value)}
+                          placeholder="Option text (HI)"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
