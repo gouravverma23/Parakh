@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { jsPDF } from "jspdf";
 import { useAuth } from "./AuthContext";
 
 const EvaluationContext = createContext(null);
@@ -159,8 +160,43 @@ export const EvaluationProvider = ({ children }) => {
 
     updateSheet(id, { uploadStatus: "uploading", errorMessage: "" });
 
+    let fileToUpload = files[0];
+
+    // If files are images, compile them into a single PDF using jsPDF
+    if (files.length > 0 && files[0].type && files[0].type.startsWith("image/")) {
+      try {
+        const doc = new jsPDF();
+        const readFileAsDataURL = (file) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file);
+          });
+        };
+
+        for (let i = 0; i < files.length; i++) {
+          const imgFile = files[i];
+          if (!imgFile.type.startsWith("image/")) continue;
+          const imgData = await readFileAsDataURL(imgFile);
+          if (i > 0) doc.addPage();
+          const ext = imgFile.type.split("/")[1]?.toUpperCase() || "JPEG";
+          const format = ext === "PNG" ? "PNG" : "JPEG";
+          doc.addImage(imgData, format, 10, 10, 190, 277, undefined, "FAST");
+        }
+
+        const pdfBlob = doc.output("blob");
+        const cleanName = studentName?.trim() ? studentName.trim().replace(/[^a-zA-Z0-9_-]/g, "_") : "answer_sheet";
+        fileToUpload = new File([pdfBlob], `${cleanName}.pdf`, { type: "application/pdf" });
+      } catch (error) {
+        console.error("Error generating client-side PDF:", error);
+        updateSheet(id, { uploadStatus: "error", errorMessage: "Failed to compile images into a PDF." });
+        return false;
+      }
+    }
+
     const formData = new FormData();
-    formData.append("files", files[0]);
+    formData.append("files", fileToUpload);
     formData.append("question_paper_id", examPaperId);
     if (studentName?.trim()) formData.append("student_name", studentName.trim());
 

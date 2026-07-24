@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEvaluation, createBlankSheet } from "../context/EvaluationContext";
 import Navbar from "../components/Navbar";
@@ -48,6 +48,34 @@ function UploadAnswersPage() {
   // We keep a Map of refs keyed by sheet id for file inputs
   const fileInputRefs = useRef({});
 
+  // Preview URLs map and Viewer state
+  const [previewUrlsMap, setPreviewUrlsMap] = useState({});
+  const [viewerState, setViewerState] = useState({ isOpen: false, sheetId: null, activeIndex: 0 });
+  const dragItemRef = useRef({ sheetId: null, index: null });
+
+  // Manage Object URLs for all sheets
+  useEffect(() => {
+    const newMap = {};
+    sheets.forEach((sheet) => {
+      if (sheet.files && sheet.files.length > 0) {
+        newMap[sheet.id] = sheet.files.map((file) => URL.createObjectURL(file));
+      } else {
+        newMap[sheet.id] = [];
+      }
+    });
+
+    const handle = setTimeout(() => {
+      setPreviewUrlsMap(newMap);
+    }, 0);
+
+    return () => {
+      clearTimeout(handle);
+      Object.values(newMap).forEach((urls) => {
+        urls.forEach((url) => URL.revokeObjectURL(url));
+      });
+    };
+  }, [sheets]);
+
   // ── Guard ─────────────────────────────────────────────────────────────────
   if (!examPaperId) {
     return (
@@ -82,12 +110,19 @@ function UploadAnswersPage() {
 
     if (firstFile.type === "application/pdf" || firstFile.name.toLowerCase().endsWith(".pdf")) {
       if (selectedFiles.length > 1) {
-        updateSheet(id, { errorMessage: "Please select only one PDF answer sheet.", uploadStatus: "error", files: [] });
+        updateSheet(id, { errorMessage: "Invalid input. Please select only one PDF or multiple images.", uploadStatus: "error", files: [] });
         return;
       }
       updateSheet(id, { files: [firstFile], uploadStatus: "idle", errorMessage: "" });
+    } else if (firstFile.type.startsWith("image/")) {
+      const allAreImages = selectedFiles.every((file) => file.type.startsWith("image/"));
+      if (!allAreImages) {
+        updateSheet(id, { errorMessage: "Invalid input! All dropped items must be images.", uploadStatus: "error", files: [] });
+        return;
+      }
+      updateSheet(id, { files: selectedFiles, uploadStatus: "idle", errorMessage: "" });
     } else {
-      updateSheet(id, { errorMessage: "Invalid file type. The student answer sheet must be a PDF file.", uploadStatus: "error", files: [] });
+      updateSheet(id, { errorMessage: "Invalid file type. Please select one PDF or a group of images.", uploadStatus: "error", files: [] });
     }
   };
 
@@ -115,6 +150,53 @@ function UploadAnswersPage() {
   const triggerFilePicker = (id) => {
     const input = fileInputRefs.current[id];
     if (input) input.click();
+  };
+
+  // Thumbnail drag-and-drop sorting handlers
+  const handleDragStart = (sheetId, index, e) => {
+    dragItemRef.current = { sheetId, index };
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnter = (sheetId, targetIndex, e) => {
+    e.preventDefault();
+    const source = dragItemRef.current;
+    if (!source || source.sheetId !== sheetId || source.index === null || source.index === targetIndex) return;
+
+    const sheet = sheets.find((s) => s.id === sheetId);
+    if (!sheet) return;
+
+    const listCopy = [...sheet.files];
+    const temp = listCopy[source.index];
+    listCopy.splice(source.index, 1);
+    listCopy.splice(targetIndex, 0, temp);
+
+    dragItemRef.current = { sheetId, index: targetIndex };
+    updateSheet(sheetId, { files: listCopy });
+  };
+
+  const handleDragEnd = () => {
+    dragItemRef.current = { sheetId: null, index: null };
+  };
+
+  const removeFileAtIndex = (sheetId, indexToRemove) => {
+    const sheet = sheets.find((s) => s.id === sheetId);
+    if (!sheet) return;
+
+    const updatedFiles = sheet.files.filter((_, idx) => idx !== indexToRemove);
+    updateSheet(sheetId, {
+      files: updatedFiles,
+      errorMessage: "",
+      uploadStatus: updatedFiles.length === 0 ? "idle" : sheet.uploadStatus,
+    });
+  };
+
+  const openViewer = (sheetId, index = 0) => {
+    setViewerState({ isOpen: true, sheetId, activeIndex: index });
+  };
+
+  const closeViewer = () => {
+    setViewerState({ isOpen: false, sheetId: null, activeIndex: 0 });
   };
 
   const handleIndividualUpload = (id, e) => {
@@ -248,9 +330,10 @@ function UploadAnswersPage() {
                 <input
                   ref={(el) => { fileInputRefs.current[sheet.id] = el; }}
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,application/pdf,image/*"
                   onChange={(e) => handleFileChange(sheet.id, e)}
                   style={styles.hiddenInput}
+                  multiple
                 />
 
                 {/* Drop zone (shown when no file selected) */}
@@ -276,49 +359,113 @@ function UploadAnswersPage() {
                       </svg>
                     </div>
                     <p style={styles.dropText}>
-                      Drag & drop answer sheet here, or <span style={styles.browseText}>browse</span>
+                      Drag & drop answer sheet (PDF or Images) here, or <span style={styles.browseText}>browse</span>
                     </p>
-                    <p style={styles.limitText}>Only PDF files accepted (Max 20 MB)</p>
+                    <p style={styles.limitText}>PDF or Images accepted (Max 20 MB)</p>
                   </div>
                 )}
 
-                {/* Selected file details */}
-                {sheet.files.length > 0 && (
-                  <div style={styles.fileDetailsCard}>
-                    <div style={styles.fileDetailsRow}>
-                      <div style={styles.pdfBadge}>
-                        <span style={styles.pdfBadgeText}>PDF</span>
-                      </div>
-                      <div style={styles.fileMeta}>
-                        <p style={styles.fileName}>{sheet.files[0].name}</p>
-                        <p style={styles.fileSize}>{formatFileSize(sheet.files[0].size)}</p>
-                      </div>
-                      {sheet.uploadStatus !== "uploading" && sheet.uploadStatus !== "success" && !globalDisabled && (
-                        <button
-                          type="button"
-                          onClick={() => handleResetSheet(sheet.id)}
-                          style={styles.removeButton}
-                          title="Remove selected file"
+                {/* Selected file(s) details */}
+                {sheet.files.length > 0 && (() => {
+                  const isPdf = sheet.files.length === 1 && (sheet.files[0].type === "application/pdf" || sheet.files[0].name.toLowerCase().endsWith(".pdf"));
+                  const totalSize = sheet.files.reduce((acc, curr) => acc + (curr.size || 0), 0);
+                  const displayTitle = isPdf ? sheet.files[0].name : `${sheet.files.length} Image${sheet.files.length > 1 ? "s" : ""} selected`;
+
+                  return (
+                    <div style={styles.fileDetailsCard}>
+                      <div style={styles.fileDetailsRow}>
+                        <div
+                          style={{
+                            ...styles.pdfBadge,
+                            backgroundColor: isPdf ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)",
+                            borderColor: isPdf ? "rgba(239, 68, 68, 0.2)" : "rgba(59, 130, 246, 0.2)",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => openViewer(sheet.id, 0)}
+                          title="Click to view file"
                         >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                          </svg>
-                        </button>
+                          <span style={{ ...styles.pdfBadgeText, color: isPdf ? "#ef4444" : "#3b82f6" }}>
+                            {isPdf ? "PDF" : "IMG"}
+                          </span>
+                        </div>
+                        <div
+                          style={{ ...styles.fileMeta, cursor: "pointer" }}
+                          onClick={() => openViewer(sheet.id, 0)}
+                          title="Click to view file"
+                        >
+                          <p style={styles.fileName}>{displayTitle}</p>
+                          <p style={styles.fileSize}>{formatFileSize(totalSize)}</p>
+                        </div>
+                        {sheet.uploadStatus !== "uploading" && sheet.uploadStatus !== "success" && !globalDisabled && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetSheet(sheet.id)}
+                            style={styles.removeButton}
+                            title="Remove selected selection"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Grid of image thumbnails if uploading images */}
+                      {!isPdf && (
+                        <div style={styles.thumbnailGrid}>
+                          {sheet.files.map((file, imgIdx) => {
+                            const imgUrl = previewUrlsMap[sheet.id]?.[imgIdx];
+                            return (
+                              <div
+                                key={imgIdx}
+                                draggable={sheet.uploadStatus !== "uploading" && !globalDisabled}
+                                onDragStart={(e) => handleDragStart(sheet.id, imgIdx, e)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDragEnter={(e) => handleDragEnter(sheet.id, imgIdx, e)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => openViewer(sheet.id, imgIdx)}
+                                style={styles.thumbnailWrapper}
+                                title="Drag to reorder, click to view image"
+                              >
+                                <img
+                                  src={imgUrl}
+                                  alt={`page-${imgIdx + 1}`}
+                                  draggable={false}
+                                  style={styles.thumbnailImage}
+                                />
+                                <div style={styles.thumbnailIndex}>{imgIdx + 1}</div>
+                                {sheet.uploadStatus !== "uploading" && !globalDisabled && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeFileAtIndex(sheet.id, imgIdx);
+                                    }}
+                                    style={styles.thumbnailDelete}
+                                    title="Remove image"
+                                  >
+                                    &times;
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Per‑card uploading indicator */}
+                      {sheet.uploadStatus === "uploading" && (
+                        <div style={styles.progressContainer}>
+                          <div style={styles.progressBarContainer}>
+                            <div style={styles.progressBar} />
+                          </div>
+                          <p style={styles.progressText}>Evaluating answer sheet with AI, please wait…</p>
+                        </div>
                       )}
                     </div>
-
-                    {/* Per‑card uploading indicator */}
-                    {sheet.uploadStatus === "uploading" && (
-                      <div style={styles.progressContainer}>
-                        <div style={styles.progressBarContainer}>
-                          <div style={styles.progressBar} />
-                        </div>
-                        <p style={styles.progressText}>Evaluating answer sheet with AI, please wait…</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Per‑card error */}
                 {sheet.uploadStatus === "error" && sheet.errorMessage && (
@@ -477,6 +624,67 @@ function UploadAnswersPage() {
         </div>
       </div>
       </div>
+
+      {/* Fullscreen View Modal */}
+      {viewerState.isOpen && (() => {
+        const activeSheet = sheets.find((s) => s.id === viewerState.sheetId);
+        if (!activeSheet || !activeSheet.files || !activeSheet.files.length) return null;
+        const activeFile = activeSheet.files[viewerState.activeIndex] || activeSheet.files[0];
+        const activeUrl = previewUrlsMap[viewerState.sheetId]?.[viewerState.activeIndex];
+        const isFilePdf = activeFile.type === "application/pdf" || activeFile.name.toLowerCase().endsWith(".pdf");
+
+        return (
+          <div style={styles.viewerOverlay} onClick={closeViewer}>
+            <div style={styles.viewerContainer} onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                style={styles.viewerCloseButton}
+                onClick={closeViewer}
+                title="Close viewer"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+
+              <div style={styles.viewerContent}>
+                {isFilePdf ? (
+                  <iframe
+                    src={activeUrl}
+                    style={styles.viewerPdf}
+                    title="PDF Full Preview"
+                  />
+                ) : (
+                  <img
+                    src={activeUrl}
+                    style={styles.viewerImage}
+                    alt={`Preview element ${viewerState.activeIndex + 1}`}
+                  />
+                )}
+              </div>
+
+              <div style={styles.viewerNavigation}>
+                {activeSheet.files.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setViewerState((prev) => ({ ...prev, activeIndex: idx }))}
+                    style={{
+                      ...styles.viewerNavButton,
+                      ...(viewerState.activeIndex === idx
+                        ? styles.viewerNavButtonActive
+                        : styles.viewerNavButtonInactive),
+                    }}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -960,6 +1168,172 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap: "8px",
+  },
+  thumbnailGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(75px, 1fr))",
+    gap: "12px",
+    marginTop: "12px",
+    maxHeight: "260px",
+    overflowY: "auto",
+    padding: "4px",
+    borderTop: "1px solid var(--border)",
+    paddingTop: "12px",
+  },
+  thumbnailWrapper: {
+    position: "relative",
+    width: "75px",
+    height: "75px",
+    borderRadius: "8px",
+    overflow: "hidden",
+    border: "2px solid var(--border)",
+    cursor: "grab",
+    transition: "transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  thumbnailIndex: {
+    position: "absolute",
+    bottom: "2px",
+    left: "2px",
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    color: "#fff",
+    fontSize: "10px",
+    fontWeight: "bold",
+    padding: "1px 5px",
+    borderRadius: "4px",
+    pointerEvents: "none",
+  },
+  thumbnailDelete: {
+    position: "absolute",
+    top: "2px",
+    right: "2px",
+    backgroundColor: "rgba(239, 68, 68, 0.85)",
+    color: "#fff",
+    border: "none",
+    width: "16px",
+    height: "16px",
+    borderRadius: "50%",
+    fontSize: "12px",
+    lineHeight: "1",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background-color 0.15s ease",
+  },
+  viewerOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    backdropFilter: "blur(8px)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  viewerContainer: {
+    position: "relative",
+    width: "90vw",
+    height: "90vh",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "20px",
+  },
+  viewerCloseButton: {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    border: "none",
+    color: "#fff",
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background-color 0.2s ease, transform 0.1s ease",
+    zIndex: 10001,
+  },
+  viewerContent: {
+    width: "100%",
+    height: "calc(100% - 100px)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  viewerImage: {
+    maxWidth: "100%",
+    maxHeight: "100%",
+    objectFit: "contain",
+    borderRadius: "8px",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+  },
+  viewerPdf: {
+    width: "100%",
+    height: "100%",
+    border: "none",
+    borderRadius: "8px",
+    backgroundColor: "#fff",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+  },
+  viewerNavigation: {
+    position: "absolute",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    display: "flex",
+    gap: "10px",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    padding: "8px 16px",
+    borderRadius: "30px",
+    maxWidth: "90%",
+    overflowX: "auto",
+    zIndex: 10000,
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+  },
+  viewerNavButton: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    border: "none",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  viewerNavButtonActive: {
+    backgroundColor: "var(--accent)",
+    color: "#fff",
+    boxShadow: "0 0 12px var(--accent)",
+    border: "2px solid #fff",
+    transform: "scale(1.1)",
+  },
+  viewerNavButtonInactive: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    color: "#fff",
+    border: "1px solid rgba(255, 255, 255, 0.3)",
   },
 };
 
