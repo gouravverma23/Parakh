@@ -12,10 +12,8 @@ const globalLimiter = rateLimit({
   handler: (req, res) => {
     res.status(429).json({
       success: false,
-      error: {
-        message: "Too many requests from this IP. Please try again after 15 minutes.",
-        code: "RATE_LIMIT_EXCEEDED"
-      }
+      error: "Too many requests from this IP. Please try again after 15 minutes.",
+      code: "RATE_LIMIT_EXCEEDED"
     });
   }
 });
@@ -32,10 +30,8 @@ const authLimiter = rateLimit({
   handler: (req, res) => {
     res.status(429).json({
       success: false,
-      error: {
-        message: "Too many authentication attempts from this IP. Please try again after 15 minutes.",
-        code: "AUTH_RATE_LIMIT_EXCEEDED"
-      }
+      error: "Too many authentication attempts from this IP. Please try again after 15 minutes.",
+      code: "AUTH_RATE_LIMIT_EXCEEDED"
     });
   }
 });
@@ -44,3 +40,4 @@ module.exports = {
   globalLimiter,
   authLimiter
 };
+
